@@ -13,6 +13,9 @@ import Main from 'components/main';
 import MeSidebarNavigation from 'me/sidebar-navigation';
 import PurchasesHeader from './header';
 import PurchasesSite from './site';
+import sitesFactory from 'lib/sites-list';
+
+const sites = sitesFactory();
 
 const PurchasesList = React.createClass( {
 	render() {
@@ -27,12 +30,12 @@ const PurchasesList = React.createClass( {
 		}
 
 		if ( this.props.purchases.hasLoadedFromServer && this.props.purchases.data.length ) {
-			content = getPurchasesBySite( this.props.purchases.data ).map(
+			content = getPurchasesBySite( this.props.purchases.data, sites ).map(
 				site => (
 					<PurchasesSite
 						key={ site.id }
 						name={ site.title }
-						domain={ site.domain }
+						slug={ site.slug }
 						purchases={ site.purchases } />
 				)
 			);
