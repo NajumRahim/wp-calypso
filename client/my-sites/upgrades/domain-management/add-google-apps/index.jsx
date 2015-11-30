@@ -20,7 +20,9 @@ const AddGoogleApps = React.createClass( {
 	},
 
 	componentDidUpdate() {
-		this.ensureCanAddEmail();
+		if ( this.props.selectedSite ) {
+			this.ensureCanAddEmail();
+		}
 	},
 
 	ensureCanAddEmail() {
@@ -40,6 +42,11 @@ const AddGoogleApps = React.createClass( {
 	},
 
 	render() {
+		if ( ! this.props.selectedSite ) {
+			// `selectedSite` is false for a render when leaving for an all-sites route
+			return null;
+		}
+
 		return (
 			<Main className="domain-management-add-google-apps">
 				<Header

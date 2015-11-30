@@ -37,6 +37,10 @@ const PrivacyProtection = React.createClass( {
 	},
 
 	ensurePageCanLoad() {
+		if ( ! this.props.selectedSite ) {
+			return null;
+		}
+
 		const domain = getSelectedDomain( this.props );
 
 		if ( ! domain ) {
@@ -55,6 +59,11 @@ const PrivacyProtection = React.createClass( {
 	},
 
 	render: function() {
+		if ( ! this.props.selectedSite ) {
+			// `selectedSite` is false for a render when leaving for an all-sites route
+			return null;
+		}
+
 		if ( ! this.canAddPrivacyProtection() ) {
 			return <DomainMainPlaceholder goBack={ this.goToPreviousSection } />;
 		}

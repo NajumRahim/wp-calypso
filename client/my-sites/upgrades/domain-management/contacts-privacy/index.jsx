@@ -28,6 +28,11 @@ const ContactsPrivacy = React.createClass( {
 	},
 
 	render() {
+		if ( ! this.props.selectedSite ) {
+			// `selectedSite` is false for a render when leaving for an all-sites route
+			return null;
+		}
+
 		if ( this.isDataLoading() ) {
 			return <DomainMainPlaceholder goBack={ this.goToEdit } />;
 		}

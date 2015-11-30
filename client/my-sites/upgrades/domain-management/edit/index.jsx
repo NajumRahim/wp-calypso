@@ -20,6 +20,11 @@ import { getSelectedDomain } from 'lib/domains';
 
 const Edit = React.createClass( {
 	render() {
+		if ( ! this.props.selectedSite ) {
+			// `selectedSite` is false for a render when leaving for an all-sites route
+			return null;
+		}
+
 		const domain = getSelectedDomain( this.props ),
 			Details = this.getDetailsForType( domain && domain.type );
 
