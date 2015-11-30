@@ -169,7 +169,8 @@ export default {
 
 		renderPage(
 			<PurchasesData
-				component={ PurchasesList } />
+				component={ PurchasesList }
+				sites={ sites } />
 		);
 	},
 
