@@ -1,44 +1,44 @@
 /**
  * External dependencies
  */
-var React = require( 'react' ),
-	omit = require( 'lodash/object/omit' ),
-	once = require( 'lodash/function/once' ),
-	isEqual = require( 'lodash/lang/isEqual' );
+import React from 'react';
+import pick from 'lodash/object/pick';
+import omit from 'lodash/object/omit';
+import once from 'lodash/function/once';
+import { bindActionCreators } from 'redux';
+import { connect } from 'react-redux';
 
 /**
  * Internal dependencies
  */
-var ThemesStore = require( 'lib/themes/stores/themes' ),
-	ThemesListStore = require( 'lib/themes/stores/themes-list' ),
-	Actions = require( 'lib/themes/flux-actions' ),
-	Constants = require( 'lib/themes/constants' );
+import Constants from 'lib/themes/constants';
+import * as allActions from 'lib/themes/actions';
+import { getThemeById } from 'lib/themes/reducers/themes';
+import { getThemesList, getQueryParams, isLastPage, isFetchingNextPage } from 'lib/themes/reducers/themes-list';
 
-function queryThemes( props ) {
-	Actions.query( {
-		search: props.search,
-		tier: props.tier,
-		page: 0,
-		perPage: Constants.PER_PAGE
-	} );
+const actions = pick( allActions, [
+	'query',
+	'fetchNextPage',
+	'incrementThemesPage',
+	'fetchThemes',
+	'fetchJetpackThemes',
+] );
 
-	Actions.fetchNextPage( props.site );
-}
-
-function getThemesInList() {
-	return ThemesListStore.getThemesList().map( ThemesStore.getById );
-}
-
-function getThemesState() {
+function getThemesState( state ) {
 	return {
-		themes: getThemesInList(),
-		lastPage: ThemesListStore.isLastPage(),
-		loading: ThemesListStore.isFetchingNextPage(),
-		search: ThemesListStore.getQueryParams().search
+		themes: getThemesInList( state ),
+		lastPage: isLastPage( state.themesList ),
+		loading: isFetchingNextPage( state.themesList )
+		//search: getQueryParams( state.themesList ).search
 	};
 }
 
-let ThemesListFetcher = React.createClass( {
+function getThemesInList( state ) {
+	return getThemesList( state.themesList ).map( themeId =>
+		getThemeById( state.themes, themeId ) );
+}
+
+const ThemesListFetcher = React.createClass( {
 	propTypes: {
 		children: React.PropTypes.element.isRequired,
 		site: React.PropTypes.oneOfType( [
@@ -49,76 +49,103 @@ let ThemesListFetcher = React.createClass( {
 		search: React.PropTypes.string,
 		tier: React.PropTypes.string,
 		onRealScroll: React.PropTypes.func,
-		onLastPage: React.PropTypes.func
-	},
+		onLastPage: React.PropTypes.func,
 
-	getInitialState: function() {
-		return Object.assign( getThemesState(), { loading: true } );
+		themes: React.PropTypes.array.isRequired,
+		lastPage: React.PropTypes.bool.isRequired,
+		loading: React.PropTypes.bool.isRequired,
+		query: React.PropTypes.func.isRequired,
+		fetchNextPage: React.PropTypes.func.isRequired,
+		incrementThemesPage: React.PropTypes.func.isRequired,
+		fetchThemes: React.PropTypes.func.isRequired,
+		fetchJetpackThemes: React.PropTypes.func.isRequired,
 	},
 
 	componentDidMount: function() {
-		ThemesListStore.on( 'change', this.onThemesChange );
-		if ( this.props.site || this.props.isMultisite ) {
-			this.queryThemes( this.props );
-		}
-	},
-
-	componentWillUnmount: function() {
-		ThemesListStore.off( 'change', this.onThemesChange );
+		this.refresh();
 	},
 
 	componentWillReceiveProps: function( nextProps ) {
-		const ignoreProps = [ 'children', 'onLastPage', 'site' ];
+		console.log( 'prop-search-2', nextProps.search );
+		const propKeys = [ 'search', 'tier' ];
 
-		if ( isEqual(
-			omit( this.props, ignoreProps ),
-			omit( nextProps, ignoreProps ) ) ) {
-			return;
-		}
-
-		if ( nextProps.site || nextProps.isMultisite ) {
-			this.queryThemes( nextProps );
+		if ( propKeys.some( key => this.props[ key ] !== nextProps[ key ] ) ) {
+			console.log( 'props changed' );
+			this.refresh();
 		}
 	},
 
-	queryThemes: function( props ) {
-		const { onLastPage } = this.props;
+	refresh: function() {
+		if ( this.props.site || this.props.isMultisite ) {
+			this.queryThemes();
+		}
+	},
+
+	queryThemes: function() {
+		const {
+			onLastPage,
+			site,
+			search,
+			tier,
+
+			query,
+			fetchNextPage
+		} = this.props;
+
 		this.onLastPage = onLastPage ? once( onLastPage ) : null;
-		queryThemes( props );
-	},
 
-	onThemesChange: function() {
-		this.setState( getThemesState() );
+		query( {
+			search,
+			tier,
+			page: 0,
+			perPage: Constants.PER_PAGE,
+		} );
 
-		const { page } = ThemesListStore.getQueryParams();
-		const { loading, lastPage } = this.state;
-
-		if ( page > 1 && ! loading && lastPage ) {
-			this.onLastPage && this.onLastPage();
-		}
+		fetchNextPage( site );
 	},
 
 	fetchNextPage: function( options ) {
 		// FIXME: While this function is passed on by `ThemesList` to `InfiniteList`,
 		// which has a `shouldLoadNextPage()` check (in scroll-helper.js), we can't
 		// rely on that; fetching would break without the following check.
-		if ( this.state.loading || this.state.lastPage ) {
+		if ( this.props.loading || this.props.lastPage ) {
 			return;
 		}
 
+		const {
+			site = false,
+			onRealScroll = () => null,
+
+			// actions assumed bound to dispatch
+			incrementThemesPage,
+			fetchThemes,
+			fetchJetpackThemes,
+		} = this.props;
+
 		if ( options.triggeredByScroll ) {
-			this.props.onRealScroll && this.props.onRealScroll();
+			onRealScroll();
 		}
 
-		Actions.fetchNextPage( this.props.site );
+		const fetcher = site.jetpack ? fetchJetpackThemes : fetchThemes;
+		incrementThemesPage( site );
+		fetcher( site );
 	},
 
 	render: function() {
-		var childrenProps = Object.assign( { fetchNextPage: this.fetchNextPage }, this.state );
-		// Clone the child element along and pass along state (containing data from the store)
-		return React.cloneElement( this.props.children, childrenProps );
+		const props = omit( this.props, 'children' );
+		return React.cloneElement( this.props.children, Object.assign( {}, props, {
+			fetchNextPage: this.fetchNextPage
+		} ) );
 	}
 
 } );
 
-module.exports = ThemesListFetcher;
+function propagateAndMerge( state, props ) {
+	console.log( 'prop-search-1', props.search );
+	return Object.assign( {}, props, getThemesState( state.themes ) );
+}
+
+module.exports = connect(
+	propagateAndMerge,
+	bindActionCreators.bind( null, actions )
+)( ThemesListFetcher );

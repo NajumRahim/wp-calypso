@@ -11,7 +11,7 @@ import page from 'page';
 import Action from 'lib/themes/flux-actions';
 import Helper from 'lib/themes/helpers';
 import ThemesSearchCard from './themes-search-card';
-import ThemesData from 'components/data/themes-list-fetcher/redux';
+import ThemesData from 'components/data/themes-list-fetcher';
 import ThemesList from 'components/themes-list';
 import ThemesListStore from 'lib/themes/stores/themes-list';
 import StickyPanel from 'components/sticky-panel';

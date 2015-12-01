@@ -4,7 +4,7 @@ import { createStore, applyMiddleware, combineReducers } from 'redux';
 import { Provider } from 'react-redux';
 import thunk from 'redux-thunk';
 
-import ThemesData from 'components/data/themes-list-fetcher/redux';
+import ThemesData from 'components/data/themes-list-fetcher';
 import themesReducer from 'lib/themes/reducers';
 
 const createStoreWithMiddleware = applyMiddleware(
